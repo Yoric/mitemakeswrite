@@ -1,3 +1,6 @@
 [submodule "libs/requirejs"]
 	path = libs/requirejs
 	url = https://github.com/jrburke/requirejs
+[submodule "libs/promise"]
+	path = libs/promise
+	url = https://github.com/Gozala/micro-promise
