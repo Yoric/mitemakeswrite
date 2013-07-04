@@ -1,6 +1,6 @@
 {
   "name": "Mite Makes Write",
-  "description": "Write without any distraction. A simple fullscreen rich text editor.",
+  "description": "Write without any distraction. A simple fullscreen text editor.",
   "developer": {
     "name": "David Rajchenbach-Teller",
     "url": "https://github.com/Yoric/mite"
@@ -8,6 +8,6 @@
   "fullscreen": "true",
   "icons": {
   },
-  "launch_path": "/index.html",
-  "version": "3"
+  "launch_path": "/~David/index.html",
+  "version": "34"
 }

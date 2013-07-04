@@ -1,35 +1,50 @@
-require(["js/install.js", "js/elements.js", "js/const.js", "js/db.js"],
-  function(Install, Elements, Const, Db) {
+require(["js/console.js", "js/install.js", "js/elements.js", "js/const.js", "js/db.js"],
+  function(Console, Install, Elements, Const, Db) {
   "use strict";
 
-  require();
+  var LOG = window.console.log.bind(window.console, "main");
 
   // Handle reload
   Db.load().then(function(doc) {
+    LOG("Loaded", doc);
     doc = doc || { source: "" };
     Elements.editor.innerHTML = doc.source;
+    Elements.editor.contentEditable = "true";
   }, function(e) {
-    console.log("Cannot load", "" + e);
+    LOG("Cannot load", e, Object.keys(e));
   });
 
   // Handle auto-save
   var saver = null;
   Elements.editor.addEventListener("keyup", function() {
     if (!saver) {
+      LOG("Adding saver");
       saver = window.setTimeout(function() {
-        console.log("Timeout spent, saving", Elements.editor.innerHTML);
-        Db.save(Elements.editor.innerHTML).then(
-          function() {
-            console.log("Saving succeeded");
-          },
-          function(e) {
-            console.log("Saving failed", e);
-          }).then(
+        LOG("Timeout spent, saving", Elements.editor.innerHTML);
+        try {
+          Db.save(Elements.editor.innerHTML).then(
             function() {
-              saver = null;
-            }
-          );
+              LOG("Saving succeeded");
+            },
+            function(e) {
+              LOG("Saving failed", e);
+            }).then(
+              function() {
+                LOG("Resetting saver");
+                saver = null;
+              }
+            );
+          LOG("Launched save");
+        } catch (ex) {
+          LOG("Could not launch save", ex);
+        }
       }, Const.delaySave_ms);
+    } else {
+      LOG("Not adding saver", saver);
     }
+  });
+  window.addEventListener("beforeunload", function(event) {
+    LOG("Attempting late save");
+    Db.save(Elements.editor.innerHTML);
   });
 })();

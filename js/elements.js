@@ -8,6 +8,9 @@ define(function() {
   // Handle fullscreen
 
   function enterFullScreen() {
+    if (document.URL.startsWith("file:")) {
+      return;
+    }
     for (var method of ["requestFullscreen", "mozRequestFullScreen", "webkitRequestFullscreen"]) {
       if (method in elements.main) {
         elements.main[method]();

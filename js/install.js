@@ -3,36 +3,39 @@
 define(function() {
   var Const = require(["js/const.js"]);
 
-  if ("mozApps" in window.navigator) {
+  var LOG = window.console.log.bind(window.console, "installer");
+
+  if ("mozApps" in window.navigator && !document.URL.startsWith("file:")) {
+    LOG("Checking whether we need to install/upgrade");
     var request = window.navigator.mozApps.getInstalled();
     request.onerror = function() {
-      console.log("Cannot determine whether application is installed", request.error);
+      LOG("Cannot determine whether application is installed", request.error);
     };
     request.onsuccess = function() {
-      console.log("getInstalled", request.result);
+      LOG("getInstalled", request.result);
       for (var app of request.result) {
-        console.log("getInstalled", "checking", app);
+        LOG("getInstalled", "checking", app);
         if (app.manifest.name == Const.appname) {
           var updateRequest = app.checkForUpdate();
           updateRequest.onsuccess = function() {
-            console.log("Update executed", updateRequest);
+            LOG("Update executed", updateRequest);
           };
           updateRequest.onerror = function() {
-            console.log("Update failed", updateRequest);
+            LOG("Update failed", updateRequest);
           };
           return;
         }
       }
-      console.log("Application isn't installed yet", request);
-      console.log("Setting up installer", request);
+      LOG("Application isn't installed yet", request);
+      LOG("Setting up installer", request);
       var uri = document.URL;
       uri = uri.substring(0, uri.lastIndexOf("/")) + "/meta/editor.webapp";
       var request2 = window.navigator.mozApps.install(uri);
       request2.onsuccess = function() {
-        console.log("Installation successful");
+        LOG("Installation successful");
       };
       request2.onerror = function(e) {
-        console.log("Installation failed", e);
+        LOG("Installation failed", e);
       };
     };
   }

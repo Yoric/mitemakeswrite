@@ -1,23 +1,34 @@
 define(['js/elements.js', 'libs/promise/core.js'], function(Elements, Promise) {
-  console.log("Elements", Elements, Object.keys(Elements));
-  console.log("Promise", Promise, Object.keys(Promise));
-
   var indexedDB =
     window.indexedDB ||
     window.mozIndexedDB ||
     window.webkitIndexedDB;
 
+  var LOG = window.console.log.bind(window.console, "db");
+
   var exports = {};
 
   // Loading
   var db;
-
   var deferInitialized = (function() {
+    LOG("Initializing");
     var deferred = Promise.defer();
+    LOG(1);
 
-    var request = indexedDB.open("mite", 1);
+    var request = indexedDB.open("mite", 3);
+    LOG(2);
+
+    function showReady() {
+      var state = request.readyState;
+      LOG("Request readyState", state);
+      if (state != "done") {
+        window.setTimeout(showReady, 500);
+      }
+    }
+    showReady();
 
     request.onupgradeneeded = function(event) {
+      LOG("upgrade needed");
       // Set the database structure
       var db = event.target.result;
 
@@ -25,7 +36,11 @@ define(['js/elements.js', 'libs/promise/core.js'], function(Elements, Promise) {
        * A mapping from {int} id to
        * - {string} source (HTML)
        */
-      db.createObjectStore("documents", {keyPath: "id"});
+      try {
+        db.createObjectStore("documents", {keyPath: "id"});
+      } catch (ex if ex instanceof ConstraintError) {
+        // Disregard constraint errors, that's just
+      }
 
       /**
        * The list of documents.
@@ -34,19 +49,25 @@ define(['js/elements.js', 'libs/promise/core.js'], function(Elements, Promise) {
        *   - {int} id
        * - idgen: number
        */
-      db.createObjectStore("index");
-      console.log("db", "upgrade complete");
+      try {
+        db.createObjectStore("index");
+      } catch (ex if ex instanceof ConstraintError) {
+      }
+      LOG("upgrade complete");
     };
     request.onsuccess = function(event) {
-      console.log("db", "open complete");
+      LOG("open success", event);
       db = event.target.result;
       deferred.resolve();
     };
     request.onerror = function(e) {
-      console.log("db", "open failed", e);
+      LOG("open failed", e);
       deferred.reject(e);
     };
-
+    request.onblocked = function(e) {
+      LOG("open blocked", e);
+    };
+    LOG(4);
     return deferred.promise;
   })();
 
@@ -59,29 +80,32 @@ define(['js/elements.js', 'libs/promise/core.js'], function(Elements, Promise) {
    * }
    */
   exports.load = function(id = 0) {
+    LOG("docload requested");
     return deferInitialized.then(function() {
-      console.log("db", "docload starting");
+      LOG("docload starting");
       var deferred = Promise.defer();
       var request = db.
         transaction(["documents"]).
         objectStore("documents").
         get(id);
-      console.log("db", "request started");
+      LOG("request started");
       request.onsuccess = function(event) {
-        console.log("db", "docload succeeded", event);
+        LOG("docload succeeded", event.target.result);
         deferred.resolve(event.target.result);
       };
       request.onerror = function(event) {
-        console.log("db", "docload failed");
+        LOG("docload failed");
         deferred.reject(event);
       };
-      console.log("db", "docload launched");
+      LOG("docload launched");
       return deferred.promise;
     });
   };
 
   exports.save = function(source, id = 0) {
+    LOG("docsave requested", source, id);
     return deferInitialized.then(function() {
+      LOG("initialization complete");
       var deferred = Promise.defer();
       var request = db.
         transaction(["documents"], "readwrite").
@@ -89,14 +113,17 @@ define(['js/elements.js', 'libs/promise/core.js'], function(Elements, Promise) {
         put({source: source, id: id});
       // FIXME: Should also update the index
       request.onsuccess = function(event) {
+        LOG("docsave", id, "complete", source);
         deferred.resolve(event.target.result);
       };
       request.onerror = function(event) {
+        LOG("docsave", id, "failed", source);
         deferred.reject(event);
       };
       return deferred.promise;
     });
   };
 
+  LOG("exporting", Object.keys(exports));
   return exports;
 });
